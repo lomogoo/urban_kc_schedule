@@ -1,0 +1,222 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); }
+.cal-wrap { padding: 1rem 0; max-width: 860px; }
+.cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+.cal-title { font-size: 18px; font-weight: 500; color: var(--color-text-primary); }
+.cal-nav button { background: transparent; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 6px 14px; font-size: 13px; cursor: pointer; color: var(--color-text-primary); }
+.cal-nav button:hover { background: var(--color-background-secondary); }
+.cal-nav { display: flex; gap: 8px; align-items: center; }
+.weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 2px; }
+.weekday-label { text-align: center; font-size: 11px; font-weight: 500; color: var(--color-text-secondary); padding: 6px 0; }
+.days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.day-cell { border: 0.5px solid var(--color-border-tertiary); border-radius: 6px; padding: 6px 8px; min-height: 90px; display: flex; flex-direction: column; gap: 4px; }
+.day-cell.empty { border: none; background: transparent; }
+.day-cell.weekend-holiday { background: #f0f0f0; border-color: #ddd; }
+.day-cell.weekend-holiday .day-num { color: #bbb; }
+.day-cell.no-store { background: #ffe5e5; border-color: #ffbcbc; }
+.day-cell.one-store { background: #fffbea; border-color: #ffe98a; }
+.day-cell.full-store { background: white; }
+.day-num { font-size: 13px; font-weight: 500; color: var(--color-text-primary); line-height: 1; }
+.store-slot { display: flex; align-items: center; gap: 4px; }
+.store-tag { font-size: 10.5px; background: #e8f0fb; color: #185FA5; border-radius: 4px; padding: 2px 6px; line-height: 1.4; flex: 1; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border: 0.5px solid #b5d4f4; }
+.store-tag:hover { background: #b5d4f4; }
+.store-tag.empty-slot { background: transparent; border: 0.5px dashed var(--color-border-tertiary); color: var(--color-text-tertiary); cursor: pointer; }
+.store-tag.empty-slot:hover { background: var(--color-background-secondary); border-color: var(--color-border-secondary); }
+select.store-select { font-size: 11px; padding: 2px 4px; border: 0.5px solid var(--color-border-secondary); border-radius: 4px; background: white; color: var(--color-text-primary); width: 100%; cursor: pointer; }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 1.5rem; font-size: 12px; color: var(--color-text-secondary); align-items: center; }
+.legend-item { display: flex; align-items: center; gap: 5px; }
+.legend-dot { width: 14px; height: 14px; border-radius: 3px; border: 0.5px solid rgba(0,0,0,0.1); flex-shrink: 0; }
+.add-store-section { margin-top: 1.5rem; display: flex; gap: 8px; align-items: center; border-top: 0.5px solid var(--color-border-tertiary); padding-top: 1rem; }
+.add-store-section input { flex: 1; font-size: 13px; padding: 6px 10px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); color: var(--color-text-primary); background: var(--color-background-primary); }
+.add-store-section button { font-size: 13px; padding: 6px 14px; background: transparent; border: 0.5px solid #378ADD; color: #185FA5; border-radius: var(--border-radius-md); cursor: pointer; font-weight: 500; }
+.add-store-section button:hover { background: #e6f1fb; }
+.store-list-section { margin-top: 1rem; border-top: 0.5px solid var(--color-border-tertiary); padding-top: 1rem; }
+.store-list-title { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 8px; }
+.store-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.store-pill { font-size: 11px; padding: 3px 10px; background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: 12px; color: var(--color-text-secondary); display: flex; align-items: center; gap: 5px; }
+.store-pill button { background: none; border: none; color: #bbb; cursor: pointer; font-size: 13px; line-height: 1; padding: 0; }
+.store-pill button:hover { color: #e24b4a; }
+.dropdown-wrap { position: relative; flex: 1; }
+.dropdown-wrap select { width: 100%; font-size: 11px; padding: 3px 5px; border: 0.5px solid #b5d4f4; border-radius: 4px; background: white; color: var(--color-text-primary); }
+</style>
+
+<div class="cal-wrap">
+<h2 class="sr-only">店舗スケジュールカレンダー — 各日に最大2店舗を割り当て可能</h2>
+<div class="cal-header">
+  <div class="cal-title" id="calTitle"></div>
+  <div class="cal-nav">
+    <button onclick="changeMonth(-1)">← 前月</button>
+    <button onclick="changeMonth(1)">翌月 →</button>
+  </div>
+</div>
+<div class="weekdays">
+  <div class="weekday-label">日</div>
+  <div class="weekday-label">月</div>
+  <div class="weekday-label">火</div>
+  <div class="weekday-label">水</div>
+  <div class="weekday-label">木</div>
+  <div class="weekday-label">金</div>
+  <div class="weekday-label">土</div>
+</div>
+<div class="days-grid" id="daysGrid"></div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#ffe5e5;border-color:#ffbcbc"></div>店舗なし（平日）</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#fffbea;border-color:#ffe98a"></div>1店舗のみ（平日）</div>
+  <div class="legend-item"><div class="legend-dot" style="background:white;border-color:#ddd"></div>2店舗（完了）</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f0f0f0;border-color:#ddd"></div>土日祝（休業）</div>
+</div>
+
+<div class="add-store-section">
+  <input type="text" id="newStoreName" placeholder="新しい店舗名を入力..." />
+  <button onclick="addStore()">+ 追加</button>
+</div>
+
+<div class="store-list-section">
+  <div class="store-list-title">登録店舗一覧</div>
+  <div class="store-list" id="storeList"></div>
+</div>
+</div>
+
+<script>
+const JAPAN_HOLIDAYS_2025 = ["2025-01-01","2025-01-13","2025-02-11","2025-02-23","2025-02-24","2025-03-20","2025-04-29","2025-05-03","2025-05-04","2025-05-05","2025-05-06","2025-07-21","2025-08-11","2025-09-15","2025-09-22","2025-09-23","2025-10-13","2025-11-03","2025-11-23","2025-11-24","2025-12-23"];
+const JAPAN_HOLIDAYS_2026 = ["2026-01-01","2026-01-12","2026-02-11","2026-02-23","2026-03-20","2026-04-29","2026-05-03","2026-05-04","2026-05-05","2026-05-06","2026-07-20","2026-08-11","2026-09-21","2026-09-22","2026-09-23","2026-10-12","2026-11-03","2026-11-23","2026-12-23"];
+const allHolidays = new Set([...JAPAN_HOLIDAYS_2025, ...JAPAN_HOLIDAYS_2026]);
+
+let stores = ["Novel café","Foodie Gent","Route 227s' café","プヨ","チキンとポテトのお店ポテタロさん","つむKITCHEN","imohana","BLOOM","移動販売VEC","hot meal 3"];
+let schedule = {};
+let currentDate = new Date();
+let currentYear = currentDate.getFullYear();
+let currentMonth = currentDate.getMonth();
+
+function dateKey(y, m, d) { return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
+function isHoliday(y, m, d) { return allHolidays.has(dateKey(y, m, d)); }
+function isWeekend(dow) { return dow === 0 || dow === 6; }
+
+function getSlots(key) {
+  if (!schedule[key]) schedule[key] = [null, null];
+  return schedule[key];
+}
+
+function render() {
+  document.getElementById('calTitle').textContent = `${currentYear}年 ${currentMonth + 1}月`;
+  const grid = document.getElementById('daysGrid');
+  grid.innerHTML = '';
+
+  const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+  for (let i = 0; i < firstDay; i++) {
+    const empty = document.createElement('div');
+    empty.className = 'day-cell empty';
+    grid.appendChild(empty);
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const key = dateKey(currentYear, currentMonth, d);
+    const dow = new Date(currentYear, currentMonth, d).getDay();
+    const holiday = isHoliday(currentYear, currentMonth, d);
+    const weekend = isWeekend(dow) || holiday;
+    const slots = getSlots(key);
+    const filled = slots.filter(s => s !== null).length;
+
+    const cell = document.createElement('div');
+    cell.className = 'day-cell';
+    if (weekend) {
+      cell.classList.add('weekend-holiday');
+    } else {
+      if (filled === 0) cell.classList.add('no-store');
+      else if (filled === 1) cell.classList.add('one-store');
+      else cell.classList.add('full-store');
+    }
+
+    const numDiv = document.createElement('div');
+    numDiv.className = 'day-num';
+    numDiv.textContent = d;
+    if (holiday && !isWeekend(dow)) numDiv.style.color = '#bbb';
+    cell.appendChild(numDiv);
+
+    for (let si = 0; si < 2; si++) {
+      const wrap = document.createElement('div');
+      wrap.className = 'store-slot';
+      const sel = document.createElement('select');
+      sel.className = 'store-select';
+      const none = document.createElement('option');
+      none.value = '';
+      none.textContent = weekend ? '— 休業日 —' : '— 選択 —';
+      sel.appendChild(none);
+      if (!weekend) {
+        stores.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s;
+          opt.textContent = s;
+          if (slots[si] === s) opt.selected = true;
+          sel.appendChild(opt);
+        });
+        sel.addEventListener('change', (e) => {
+          const val = e.target.value || null;
+          const currentSlots = getSlots(key);
+          const other = currentSlots[1 - si];
+          if (val && val === other) { e.target.value = currentSlots[si] || ''; return; }
+          currentSlots[si] = val;
+          render();
+        });
+      } else {
+        sel.disabled = true;
+        sel.style.color = '#bbb';
+        sel.style.borderColor = '#e0e0e0';
+      }
+      if (slots[si] && !weekend) sel.value = slots[si];
+      wrap.appendChild(sel);
+      cell.appendChild(wrap);
+    }
+
+    grid.appendChild(cell);
+  }
+
+  renderStoreList();
+}
+
+function renderStoreList() {
+  const list = document.getElementById('storeList');
+  list.innerHTML = '';
+  stores.forEach((s, i) => {
+    const pill = document.createElement('div');
+    pill.className = 'store-pill';
+    pill.innerHTML = `<span>${s}</span><button title="削除" onclick="removeStore(${i})">×</button>`;
+    list.appendChild(pill);
+  });
+}
+
+function changeMonth(delta) {
+  currentMonth += delta;
+  if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+  if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+  render();
+}
+
+function addStore() {
+  const input = document.getElementById('newStoreName');
+  const name = input.value.trim();
+  if (!name) return;
+  if (stores.includes(name)) { input.value = ''; return; }
+  stores.push(name);
+  input.value = '';
+  render();
+}
+
+function removeStore(idx) {
+  const name = stores[idx];
+  if (!confirm(`「${name}」を削除しますか？\n割り当て済みのスケジュールからも削除されます。`)) return;
+  stores.splice(idx, 1);
+  Object.keys(schedule).forEach(k => {
+    schedule[k] = schedule[k].map(s => s === name ? null : s);
+  });
+  render();
+}
+
+document.getElementById('newStoreName').addEventListener('keydown', e => { if (e.key === 'Enter') addStore(); });
+render();
+</script>
